@@ -43,8 +43,37 @@ impl fmt::Display for PasswordStrength {
 ///   3–4 → Medium
 ///   5–6 → Strong
 ///   7   → VeryStrong
-pub fn validate_strength(_password: &str) -> PasswordStrength {
-    todo!("Implement validate_strength")
+pub fn validate_strength(password: &str) -> PasswordStrength {
+    let len = password.len();
+    let mut score = 0;
+    if len >= 8 {
+        score += 1;
+    }
+    if len >= 12 {
+        score += 1;
+    }
+    if len >= 16 {
+        score += 1;
+    }
+    if password.chars().any(|c| c.is_ascii_lowercase()) {
+        score += 1;
+    }
+    if password.chars().any(|c| c.is_ascii_uppercase()) {
+        score += 1;
+    }
+    if password.chars().any(|c| c.is_ascii_digit()) {
+        score += 1;
+    }
+    if password.chars().any(|c| !c.is_ascii_alphanumeric()) {
+        score += 1;
+    }
+    match score {
+        0..=2 => PasswordStrength::Weak,
+        3..=4 => PasswordStrength::Medium,
+        5..=6 => PasswordStrength::Strong,
+        7 => PasswordStrength::VeryStrong,
+        _ => PasswordStrength::Weak, // shouldn't happen
+    }
 }
 
 /// Returns `true` if `password` matches a common weak pattern.
@@ -52,8 +81,18 @@ pub fn validate_strength(_password: &str) -> PasswordStrength {
 /// Check for these patterns (case-insensitive):
 ///   - All characters are the same (e.g. "aaaa", "1111")
 ///   - The password is one of the 10 common passwords listed in COMMON_PASSWORDS
-pub fn check_common_patterns(_password: &str) -> bool {
-    todo!("Implement check_common_patterns")
+pub fn check_common_patterns(password: &str) -> bool {
+    if password.is_empty() {
+        return false;
+    }
+    // Check all same char
+    let first = password.chars().next().unwrap();
+    if password.chars().all(|c| c == first) {
+        return true;
+    }
+    // Check common passwords, case insensitive
+    let lower = password.to_lowercase();
+    COMMON_PASSWORDS.iter().any(|&common| common == lower)
 }
 
 /// Estimates the Shannon entropy of `password` in bits.
@@ -67,8 +106,32 @@ pub fn check_common_patterns(_password: &str) -> bool {
 ///   + any non-alphanumeric  → 94
 ///
 /// Use `f64::log2(charset_size as f64) * length as f64`.
-pub fn calculate_entropy(_password: &str) -> f64 {
-    todo!("Implement calculate_entropy")
+pub fn calculate_entropy(password: &str) -> f64 {
+    if password.is_empty() {
+        return 0.0;
+    }
+    let mut has_upper = false;
+    let mut has_digit = false;
+    let mut has_symbol = false;
+    for c in password.chars() {
+        if c.is_ascii_uppercase() {
+            has_upper = true;
+        } else if c.is_ascii_digit() {
+            has_digit = true;
+        } else if !c.is_ascii_alphanumeric() {
+            has_symbol = true;
+        }
+    }
+    let charset_size = if has_symbol {
+        94
+    } else if has_digit {
+        62
+    } else if has_upper {
+        52
+    } else {
+        26
+    };
+    password.len() as f64 * (charset_size as f64).log2()
 }
 
 /// Ten common passwords to flag as weak patterns.
